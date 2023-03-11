@@ -6,45 +6,47 @@
 
 #define BUFFER_SIZE 80
 
-void display_help() {
+void print_help() {
     printf("Usage: fcr [FILE]...\n");
     printf("Print FILE(s) content to standard output.\n");
 }
 
-int main(int argc, char** argv) {
+void print_content(char* file_name) {
+    FILE* fd = fopen(file_name, "r");
     char buffer[BUFFER_SIZE];
-    FILE* fd;
+    
+    if (!fd) {
+        printf("fcr: %s: %s\n", file_name, strerror(errno));
+        return;
+    }
 
+    size_t lines_read;
+    while((lines_read = fread(buffer, sizeof(char), BUFFER_SIZE, fd))) {
+        fwrite(buffer, sizeof(char), lines_read, stdout);
+    }
+
+    fclose(fd);
+}
+
+int main(int argc, char** argv) {
     int opt;
     while ((opt = getopt(argc, argv, "h")) != -1) {
         switch(opt) {
             case 'h':
-                display_help();
+                print_help();
                 break;
             default:
                 printf("Try \"fcr -h\" for more information.\n");
         }
     }
 
-    int file_count = optind;
+    int file_index = optind;
     if (argc > 1) {
-        while(file_count < argc) {
-            if (access(argv[file_count], F_OK) != 0) {
-                printf("fcr: %s: %s\n", argv[file_count], strerror(errno));
-                return 0;
-            }
-
-            fd = fopen(argv[file_count], "r");
-
-            size_t lines_read;
-            while((lines_read = fread(buffer, sizeof(char), BUFFER_SIZE, fd))) {
-                fwrite(buffer, sizeof(char), lines_read, stdout);
-            }
-
-            fclose(fd);
-            file_count++;
+        while (file_index < argc) {
+            print_content(argv[file_index]);
+            file_index++;
         }
     } else {
-        display_help();
+        print_help();
     }
 }
